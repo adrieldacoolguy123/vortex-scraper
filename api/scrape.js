@@ -10,11 +10,28 @@ const safeFetch = (url, opts = {}) => {
   return fetch(url, rest);
 };
 
-function build(target) {
-  return makeProviders({
-    fetcher: makeStandardFetcher(safeFetch),
-    target,
-  });
+// Known public proxies that bypass IP blocks (if alive)
+const PROXY_URLS = [
+  'https://proxy.pstream.mov/',
+  'https://sudo-proxy.sudo-flix.lol/',
+  'https://proxy.pstream.org/',
+];
+
+async function pickProxy() {
+  for (const url of PROXY_URLS) {
+    try {
+      const r = await safeFetch(url + '?destination=' + encodeURIComponent('https://httpbin.org/get'));
+      if (r.ok) return url;
+    } catch {}
+  }
+  return null;
+}
+
+function build(target, proxyUrl) {
+  const fetcher = proxyUrl
+    ? makeSimpleProxyFetcher(proxyUrl, safeFetch)
+    : makeStandardFetcher(safeFetch);
+  return makeProviders({ fetcher, target });
 }
 
 module.exports = async (req, res) => {
@@ -66,9 +83,13 @@ module.exports = async (req, res) => {
   const targetsToTry = [targets.NATIVE];
   const debugInfo = [];
 
+  // Try with proxy first (bypasses IP blocks), fall back to direct
+  const proxyUrl = await pickProxy();
+  debugInfo.push({ proxy: proxyUrl || 'none' });
+
   for (const target of targetsToTry) {
     try {
-      const providers = build(target);
+      const providers = build(target, proxyUrl);
       const listed = providers.listSources().length;
       debugInfo.push({ target, sources: listed });
 
