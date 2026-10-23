@@ -4,9 +4,15 @@
 
 const { makeProviders, makeStandardFetcher, makeSimpleProxyFetcher, targets } = require('@movie-web/providers');
 
+// Vercel's Node runtime rejects AbortSignal from different realm — strip it
+const safeFetch = (url, opts = {}) => {
+  const { signal, ...rest } = opts;
+  return fetch(url, rest);
+};
+
 function build(target) {
   return makeProviders({
-    fetcher: makeStandardFetcher(fetch),
+    fetcher: makeStandardFetcher(safeFetch),
     target,
   });
 }
