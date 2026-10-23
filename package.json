@@ -1,0 +1,11 @@
+{
+  "name": "vortex-scraper",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@movie-web/providers": "^2.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
